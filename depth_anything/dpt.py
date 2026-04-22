@@ -150,11 +150,31 @@ class DPT_DINOv2(nn.Module):
 
         assert encoder in ['vits', 'vitb', 'vitl']
 
-        # in case the Internet connection is not stable, please load the DINOv2 locally
-        # if localhub:
-        #     self.pretrained = torch.hub.load('torchhub/facebookresearch_dinov2_main', 'dinov2_{:}14'.format(encoder), source='local', pretrained=False)
-        # else:
-        self.pretrained = torch.hub.load('facebookresearch/dinov2', 'dinov2_{:}14'.format(encoder), pretrained=pretrained_dino)
+        model_name = 'dinov2_{:}14'.format(encoder)
+        # Prefer local torch hub cache to avoid network-dependent startup failures.
+        local_repo_candidates = []
+        torch_home = os.environ.get("TORCH_HOME", "").strip()
+        if torch_home:
+            local_repo_candidates.append(os.path.join(torch_home, "hub", "facebookresearch_dinov2_main"))
+        local_repo_candidates.extend(
+            [
+                os.path.join(os.path.expanduser("~"), ".cache", "torch", "hub", "facebookresearch_dinov2_main"),
+                "/media/image/mxz/.cache/torch/hub/facebookresearch_dinov2_main",
+            ]
+        )
+
+        self.pretrained = None
+        for repo_dir in local_repo_candidates:
+            if not os.path.isdir(repo_dir):
+                continue
+            try:
+                self.pretrained = torch.hub.load(repo_dir, model_name, source='local', pretrained=pretrained_dino)
+                break
+            except Exception:
+                continue
+
+        if self.pretrained is None:
+            self.pretrained = torch.hub.load('facebookresearch/dinov2', model_name, pretrained=pretrained_dino)
 
 
         dim = self.pretrained.blocks[0].attn.qkv.in_features
