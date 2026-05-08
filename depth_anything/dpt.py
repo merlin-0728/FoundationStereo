@@ -153,6 +153,7 @@ class DPT_DINOv2(nn.Module):
         model_name = 'dinov2_{:}14'.format(encoder)
         # Prefer local torch hub cache to avoid network-dependent startup failures.
         local_repo_candidates = []
+        local_repo_candidates.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dinov2")))
         torch_home = os.environ.get("TORCH_HOME", "").strip()
         if torch_home:
             local_repo_candidates.append(os.path.join(torch_home, "hub", "facebookresearch_dinov2_main"))
